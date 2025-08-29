@@ -43,8 +43,8 @@ A powerful and user-friendly GUI tool for creating and managing Windows Sandbox 
 - **Clipboard Redirection**: Copy/paste between host and sandbox
 - **Protected Client**: Enhanced security mode
 - **Memory Allocation**: Custom RAM assignment (512MB - 32GB)
-- **Custom Hostname**: Set sandbox computer name
-- **Force Dark Mode**: Enable dark theme in sandbox
+- **Custom Hostname**: Set sandbox computer name [Not Working]
+- **Force Dark Mode**: Enable dark theme in sandbox [Not Available]
 
 ### 📁 **Advanced Folder Mapping**
 - Drag-and-drop folder selection
