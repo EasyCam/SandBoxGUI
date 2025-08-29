@@ -60,23 +60,45 @@ class MappedFoldersWidget(QWidget):
 
     def setup_ui(self):
         layout = QVBoxLayout(self)
+        layout.setSpacing(8)
         
-        # Controls
+        # Compact controls
         controls_layout = QHBoxLayout()
+        controls_layout.setSpacing(8)
+        
         self.add_button = QPushButton("Add Folder")
-        self.remove_button = QPushButton("Remove Selected")
+        self.add_button.setMaximumWidth(100)
+        self.remove_button = QPushButton("Remove")
+        self.remove_button.setMaximumWidth(80)
         self.remove_button.setEnabled(False)
+        
+        # Add quick add buttons
+        desktop_btn = QPushButton("+ Desktop")
+        desktop_btn.setMaximumWidth(80)
+        desktop_btn.setToolTip("Add Desktop folder")
+        desktop_btn.clicked.connect(lambda: self.add_predefined_folder("Desktop"))
+        
+        downloads_btn = QPushButton("+ Downloads")
+        downloads_btn.setMaximumWidth(90)
+        downloads_btn.setToolTip("Add Downloads folder")
+        downloads_btn.clicked.connect(lambda: self.add_predefined_folder("Downloads"))
         
         controls_layout.addWidget(self.add_button)
         controls_layout.addWidget(self.remove_button)
+        controls_layout.addWidget(QLabel("|  Quick Add:"))
+        controls_layout.addWidget(desktop_btn)
+        controls_layout.addWidget(downloads_btn)
         controls_layout.addStretch()
         
-        # Table
+        # Compact table
         self.table = QTableWidget(0, 3)
         self.table.setHorizontalHeaderLabels(["Host Folder", "Sandbox Folder", "Read Only"])
         self.table.horizontalHeader().setStretchLastSection(True)
         self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        
+        # Set minimum row height
+        self.table.verticalHeader().setDefaultSectionSize(25)
         
         layout.addLayout(controls_layout)
         layout.addWidget(self.table)
@@ -95,6 +117,27 @@ class MappedFoldersWidget(QWidget):
             mapped_folder = MappedFolder(folder, "C:\\Users\\WDAGUtilityAccount\\Desktop\\Shared")
             self.mapped_folders.append(mapped_folder)
             self.refresh_table()
+            
+    def add_predefined_folder(self, folder_type):
+        """Add a predefined folder"""
+        import os
+        
+        if folder_type == "Desktop":
+            host_folder = os.path.join(os.path.expanduser("~"), "Desktop")
+            sandbox_folder = "C:\\Users\\WDAGUtilityAccount\\Desktop\\Shared\\Desktop"
+        elif folder_type == "Downloads":
+            host_folder = os.path.join(os.path.expanduser("~"), "Downloads")
+            sandbox_folder = "C:\\Users\\WDAGUtilityAccount\\Desktop\\Shared\\Downloads"
+        else:
+            return
+            
+        if os.path.exists(host_folder):
+            mapped_folder = MappedFolder(host_folder, sandbox_folder)
+            self.mapped_folders.append(mapped_folder)
+            self.refresh_table()
+        else:
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.warning(self, "Folder Not Found", f"The {folder_type} folder was not found.")
 
     def remove_folder(self):
         """Remove selected mapped folder"""
@@ -163,14 +206,17 @@ class SandboxConfigTool(QMainWindow):
     def setup_ui(self):
         """Setup the user interface"""
         self.setWindowTitle("Windows Sandbox Configuration Tool")
-        self.setMinimumSize(800, 600)
+        self.setMinimumSize(1000, 700)  # Increased size for better layout
+        self.resize(1200, 800)  # Default size
         
         # Central widget
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         
-        # Main layout
+        # Main layout with better spacing
         main_layout = QVBoxLayout(central_widget)
+        main_layout.setSpacing(10)
+        main_layout.setContentsMargins(10, 10, 10, 10)
         
         # Create tabs
         self.tab_widget = QTabWidget()
@@ -235,122 +281,199 @@ class SandboxConfigTool(QMainWindow):
         tab = QWidget()
         self.tab_widget.addTab(tab, "General")
         
-        layout = QVBoxLayout(tab)
+        # Create scroll area for better space management
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_widget = QWidget()
+        scroll_area.setWidget(scroll_widget)
         
-        # VGpu settings
-        vgpu_group = QGroupBox("Virtual GPU")
-        vgpu_layout = QFormLayout(vgpu_group)
+        # Main layout for the tab
+        tab_layout = QVBoxLayout(tab)
+        tab_layout.addWidget(scroll_area)
+        
+        # Two-column layout
+        main_layout = QHBoxLayout(scroll_widget)
+        main_layout.setSpacing(15)
+        
+        # Left column
+        left_column = QVBoxLayout()
+        left_column.setSpacing(10)
+        
+        # Right column
+        right_column = QVBoxLayout()
+        right_column.setSpacing(10)
+        
+        # Left column groups
+        # Basic settings group
+        basic_group = QGroupBox("Basic Settings")
+        basic_layout = QGridLayout(basic_group)
+        basic_layout.setVerticalSpacing(8)
+        basic_layout.setHorizontalSpacing(10)
         
         self.vgpu_enabled = QCheckBox("Enable vGPU")
         self.vgpu_enabled.setChecked(True)
         self.vgpu_enabled.setToolTip("Enable or disable virtualized GPU support")
-        vgpu_layout.addRow(self.vgpu_enabled)
-        
-        # Networking settings
-        network_group = QGroupBox("Networking")
-        network_layout = QFormLayout(network_group)
         
         self.networking_enabled = QCheckBox("Enable Networking")
         self.networking_enabled.setChecked(True)
         self.networking_enabled.setToolTip("Enable or disable network access")
-        network_layout.addRow(self.networking_enabled)
-        
-        # Audio input settings
-        audio_group = QGroupBox("Audio")
-        audio_layout = QFormLayout(audio_group)
-        
-        self.audio_input_enabled = QCheckBox("Enable Audio Input")
-        self.audio_input_enabled.setChecked(False)
-        self.audio_input_enabled.setToolTip("Enable or disable microphone access")
-        audio_layout.addRow(self.audio_input_enabled)
-        
-        # Video input settings
-        video_group = QGroupBox("Video")
-        video_layout = QFormLayout(video_group)
-        
-        self.video_input_enabled = QCheckBox("Enable Video Input")
-        self.video_input_enabled.setChecked(False)
-        self.video_input_enabled.setToolTip("Enable or disable camera access")
-        video_layout.addRow(self.video_input_enabled)
-        
-        # Protected client settings
-        protected_group = QGroupBox("Security")
-        protected_layout = QFormLayout(protected_group)
-        
-        self.protected_client_enabled = QCheckBox("Enable Protected Client")
-        self.protected_client_enabled.setChecked(False)
-        self.protected_client_enabled.setToolTip("Enable additional security protections")
-        protected_layout.addRow(self.protected_client_enabled)
-        
-        # Printer redirection settings
-        printer_group = QGroupBox("Printer")
-        printer_layout = QFormLayout(printer_group)
-        
-        self.printer_redirection_enabled = QCheckBox("Enable Printer Redirection")
-        self.printer_redirection_enabled.setChecked(False)
-        self.printer_redirection_enabled.setToolTip("Enable or disable printer access")
-        printer_layout.addRow(self.printer_redirection_enabled)
-        
-        # Clipboard redirection settings
-        clipboard_group = QGroupBox("Clipboard")
-        clipboard_layout = QFormLayout(clipboard_group)
         
         self.clipboard_redirection_enabled = QCheckBox("Enable Clipboard Redirection")
         self.clipboard_redirection_enabled.setChecked(True)
         self.clipboard_redirection_enabled.setToolTip("Enable or disable clipboard sharing")
-        clipboard_layout.addRow(self.clipboard_redirection_enabled)
         
-        # Memory settings
-        memory_group = QGroupBox("Memory")
-        memory_layout = QFormLayout(memory_group)
+        basic_layout.addWidget(self.vgpu_enabled, 0, 0)
+        basic_layout.addWidget(self.networking_enabled, 0, 1)
+        basic_layout.addWidget(self.clipboard_redirection_enabled, 1, 0)
+        
+        # Hardware redirection group
+        hardware_group = QGroupBox("Hardware Redirection")
+        hardware_layout = QGridLayout(hardware_group)
+        hardware_layout.setVerticalSpacing(8)
+        hardware_layout.setHorizontalSpacing(10)
+        
+        self.audio_input_enabled = QCheckBox("Audio Input")
+        self.audio_input_enabled.setChecked(False)
+        self.audio_input_enabled.setToolTip("Enable or disable microphone access")
+        
+        self.video_input_enabled = QCheckBox("Video Input")
+        self.video_input_enabled.setChecked(False)
+        self.video_input_enabled.setToolTip("Enable or disable camera access")
+        
+        self.printer_redirection_enabled = QCheckBox("Printer Redirection")
+        self.printer_redirection_enabled.setChecked(False)
+        self.printer_redirection_enabled.setToolTip("Enable or disable printer access")
+        
+        hardware_layout.addWidget(self.audio_input_enabled, 0, 0)
+        hardware_layout.addWidget(self.video_input_enabled, 0, 1)
+        hardware_layout.addWidget(self.printer_redirection_enabled, 1, 0)
+        
+        # System settings group
+        system_group = QGroupBox("System Settings")
+        system_layout = QFormLayout(system_group)
+        system_layout.setVerticalSpacing(8)
         
         self.memory_mb = QSpinBox()
         self.memory_mb.setRange(512, 32768)
         self.memory_mb.setValue(4096)
         self.memory_mb.setSuffix(" MB")
         self.memory_mb.setToolTip("Memory allocation in megabytes")
-        memory_layout.addRow("Memory Size:", self.memory_mb)
+        self.memory_mb.setMinimumWidth(120)
+        system_layout.addRow("Memory Size:", self.memory_mb)
         
-        # Hostname settings
-        hostname_group = QGroupBox("Hostname")
-        hostname_layout = QFormLayout(hostname_group)
+        self.protected_client_enabled = QCheckBox("Enable Protected Client")
+        self.protected_client_enabled.setChecked(False)
+        self.protected_client_enabled.setToolTip("Enable additional security protections")
+        system_layout.addRow(self.protected_client_enabled)
+        
+        # Add left column groups
+        left_column.addWidget(basic_group)
+        left_column.addWidget(hardware_group)
+        left_column.addWidget(system_group)
+        left_column.addStretch()
+        
+        # Right column groups
+        # Hostname settings group
+        hostname_group = QGroupBox("Hostname Configuration")
+        hostname_layout = QVBoxLayout(hostname_group)
+        hostname_layout.setSpacing(8)
         
         self.hostname_enabled = QCheckBox("Set Custom Hostname")
         self.hostname_enabled.setChecked(False)
         self.hostname_enabled.setToolTip("Enable custom hostname for the sandbox")
-        hostname_layout.addRow(self.hostname_enabled)
+        hostname_layout.addWidget(self.hostname_enabled)
+        
+        hostname_input_layout = QHBoxLayout()
+        hostname_input_layout.addWidget(QLabel("Hostname:"))
         
         self.hostname_value = QLineEdit()
         self.hostname_value.setPlaceholderText("e.g., MySandbox")
         self.hostname_value.setEnabled(False)
         self.hostname_value.setToolTip("Custom hostname for the sandbox (max 15 characters)")
         self.hostname_value.setMaxLength(15)
-        hostname_layout.addRow("Hostname:", self.hostname_value)
+        self.hostname_value.setMaximumWidth(150)
+        hostname_input_layout.addWidget(self.hostname_value)
+        hostname_input_layout.addStretch()
+        
+        hostname_layout.addLayout(hostname_input_layout)
         
         # Connect hostname checkbox to enable/disable input
         self.hostname_enabled.toggled.connect(self.hostname_value.setEnabled)
         
-        # Appearance settings
+        # Appearance settings group
         appearance_group = QGroupBox("Appearance")
-        appearance_layout = QFormLayout(appearance_group)
+        appearance_layout = QVBoxLayout(appearance_group)
+        appearance_layout.setSpacing(8)
         
         self.force_dark_mode = QCheckBox("Force Dark Mode")
         self.force_dark_mode.setChecked(False)
         self.force_dark_mode.setToolTip("Force the sandbox to use dark theme")
-        appearance_layout.addRow(self.force_dark_mode)
+        appearance_layout.addWidget(self.force_dark_mode)
         
-        # Add all groups to layout
-        layout.addWidget(vgpu_group)
-        layout.addWidget(network_group)
-        layout.addWidget(audio_group)
-        layout.addWidget(video_group)
-        layout.addWidget(protected_group)
-        layout.addWidget(printer_group)
-        layout.addWidget(clipboard_group)
-        layout.addWidget(memory_group)
-        layout.addWidget(hostname_group)
-        layout.addWidget(appearance_group)
-        layout.addStretch()
+        # Quick actions group
+        actions_group = QGroupBox("Quick Actions")
+        actions_layout = QGridLayout(actions_group)
+        actions_layout.setSpacing(8)
+        
+        # Security preset buttons
+        secure_preset_btn = QPushButton("Secure Preset")
+        secure_preset_btn.setToolTip("Apply secure settings (disable networking, vGPU, etc.)")
+        secure_preset_btn.clicked.connect(self.apply_secure_preset)
+        
+        default_preset_btn = QPushButton("Default Preset")
+        default_preset_btn.setToolTip("Apply default settings")
+        default_preset_btn.clicked.connect(self.apply_default_preset)
+        
+        testing_preset_btn = QPushButton("Testing Preset")
+        testing_preset_btn.setToolTip("Apply settings optimized for software testing")
+        testing_preset_btn.clicked.connect(self.apply_testing_preset)
+        
+        actions_layout.addWidget(secure_preset_btn, 0, 0)
+        actions_layout.addWidget(default_preset_btn, 0, 1)
+        actions_layout.addWidget(testing_preset_btn, 1, 0)
+        
+        # Add right column groups
+        right_column.addWidget(hostname_group)
+        right_column.addWidget(appearance_group)
+        right_column.addWidget(actions_group)
+        right_column.addStretch()
+        
+        # Add columns to main layout
+        main_layout.addLayout(left_column, 1)
+        main_layout.addLayout(right_column, 1)
+        
+    def apply_secure_preset(self):
+        """Apply secure preset settings"""
+        self.vgpu_enabled.setChecked(False)
+        self.networking_enabled.setChecked(False)
+        self.audio_input_enabled.setChecked(False)
+        self.video_input_enabled.setChecked(False)
+        self.printer_redirection_enabled.setChecked(False)
+        self.clipboard_redirection_enabled.setChecked(False)
+        self.protected_client_enabled.setChecked(True)
+        self.statusBar().showMessage("Applied secure preset settings")
+        
+    def apply_default_preset(self):
+        """Apply default preset settings"""
+        self.vgpu_enabled.setChecked(True)
+        self.networking_enabled.setChecked(True)
+        self.audio_input_enabled.setChecked(False)
+        self.video_input_enabled.setChecked(False)
+        self.printer_redirection_enabled.setChecked(False)
+        self.clipboard_redirection_enabled.setChecked(True)
+        self.protected_client_enabled.setChecked(False)
+        self.statusBar().showMessage("Applied default preset settings")
+        
+    def apply_testing_preset(self):
+        """Apply testing preset settings"""
+        self.vgpu_enabled.setChecked(True)
+        self.networking_enabled.setChecked(True)
+        self.audio_input_enabled.setChecked(True)
+        self.video_input_enabled.setChecked(True)
+        self.printer_redirection_enabled.setChecked(True)
+        self.clipboard_redirection_enabled.setChecked(True)
+        self.protected_client_enabled.setChecked(False)
+        self.statusBar().showMessage("Applied testing preset settings")
         
     def setup_folders_tab(self):
         """Setup the mapped folders tab"""
@@ -358,13 +481,15 @@ class SandboxConfigTool(QMainWindow):
         self.tab_widget.addTab(tab, "Mapped Folders")
         
         layout = QVBoxLayout(tab)
+        layout.setSpacing(10)
         
-        # Instructions
+        # Compact instructions
         instructions = QLabel(
-            "Configure folders to be shared between the host and sandbox.\n"
+            "Configure folders to be shared between the host and sandbox. "
             "Host folders will be accessible from within the sandbox."
         )
         instructions.setWordWrap(True)
+        instructions.setMaximumHeight(40)
         layout.addWidget(instructions)
         
         # Mapped folders widget
@@ -376,50 +501,129 @@ class SandboxConfigTool(QMainWindow):
         tab = QWidget()
         self.tab_widget.addTab(tab, "Startup")
         
-        layout = QVBoxLayout(tab)
+        # Main horizontal layout
+        main_layout = QHBoxLayout(tab)
+        main_layout.setSpacing(15)
         
-        # Logon command group
+        # Left side - Logon command configuration
+        left_layout = QVBoxLayout()
+        
+        # Logon command group - more compact
         logon_group = QGroupBox("Logon Command")
         logon_layout = QVBoxLayout(logon_group)
+        logon_layout.setSpacing(8)
         
         instructions = QLabel(
-            "Specify a command to run when the sandbox starts up.\n"
-            "This command will be executed after the user logs in."
+            "Specify a command to run when the sandbox starts up."
         )
         instructions.setWordWrap(True)
         logon_layout.addWidget(instructions)
         
-        # Command input
-        command_layout = QFormLayout()
+        # Command input layout
+        command_layout = QHBoxLayout()
+        command_layout.addWidget(QLabel("Command:"))
         
         self.logon_command = QLineEdit()
         self.logon_command.setPlaceholderText("e.g., C:\\Windows\\System32\\cmd.exe")
-        command_layout.addRow("Command:", self.logon_command)
+        command_layout.addWidget(self.logon_command)
+        
+        # Browse button for easier file selection
+        browse_btn = QPushButton("Browse...")
+        browse_btn.setMaximumWidth(80)
+        browse_btn.clicked.connect(self.browse_logon_command)
+        command_layout.addWidget(browse_btn)
         
         logon_layout.addLayout(command_layout)
         
-        # Example commands
-        examples_group = QGroupBox("Example Commands")
+        # Quick command buttons
+        quick_commands_layout = QGridLayout()
+        quick_commands_layout.setSpacing(5)
+        
+        cmd_btn = QPushButton("CMD")
+        cmd_btn.setToolTip("Command Prompt")
+        cmd_btn.clicked.connect(lambda: self.set_quick_command("C:\\Windows\\System32\\cmd.exe"))
+        
+        ps_btn = QPushButton("PowerShell")
+        ps_btn.setToolTip("PowerShell")
+        ps_btn.clicked.connect(lambda: self.set_quick_command("C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"))
+        
+        explorer_btn = QPushButton("Explorer")
+        explorer_btn.setToolTip("File Explorer")
+        explorer_btn.clicked.connect(lambda: self.set_quick_command("C:\\Windows\\explorer.exe"))
+        
+        clear_btn = QPushButton("Clear")
+        clear_btn.setToolTip("Clear command")
+        clear_btn.clicked.connect(lambda: self.logon_command.clear())
+        
+        quick_commands_layout.addWidget(cmd_btn, 0, 0)
+        quick_commands_layout.addWidget(ps_btn, 0, 1)
+        quick_commands_layout.addWidget(explorer_btn, 1, 0)
+        quick_commands_layout.addWidget(clear_btn, 1, 1)
+        
+        quick_group = QGroupBox("Quick Commands")
+        quick_group.setLayout(quick_commands_layout)
+        
+        left_layout.addWidget(logon_group)
+        left_layout.addWidget(quick_group)
+        left_layout.addStretch()
+        
+        # Right side - Examples and help
+        right_layout = QVBoxLayout()
+        
+        # Example commands - more compact
+        examples_group = QGroupBox("Command Examples")
         examples_layout = QVBoxLayout(examples_group)
         
         examples_text = QTextEdit()
         examples_text.setReadOnly(True)
-        examples_text.setMaximumHeight(150)
+        examples_text.setMaximumHeight(200)
         examples_text.setPlainText(
-            "Open Command Prompt:\n"
-            "C:\\Windows\\System32\\cmd.exe\n\n"
-            "Open PowerShell:\n"
-            "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\n\n"
-            "Open specific application:\n"
-            "C:\\Users\\WDAGUtilityAccount\\Desktop\\Shared\\myapp.exe\n\n"
-            "Run batch file:\n"
-            "C:\\Users\\WDAGUtilityAccount\\Desktop\\Shared\\setup.bat"
+            "Common Commands:\n"
+            "• C:\\Windows\\System32\\cmd.exe\n"
+            "• C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\n"
+            "• C:\\Windows\\explorer.exe\n\n"
+            "Custom Applications:\n"
+            "• C:\\Users\\WDAGUtilityAccount\\Desktop\\Shared\\myapp.exe\n"
+            "• C:\\Users\\WDAGUtilityAccount\\Desktop\\Shared\\setup.bat\n\n"
+            "Note: Files in mapped folders can be accessed via:\n"
+            "C:\\Users\\WDAGUtilityAccount\\Desktop\\Shared\\"
         )
         examples_layout.addWidget(examples_text)
         
-        layout.addWidget(logon_group)
-        layout.addWidget(examples_group)
-        layout.addStretch()
+        # Tips section
+        tips_group = QGroupBox("Tips")
+        tips_layout = QVBoxLayout(tips_group)
+        
+        tips_label = QLabel(
+            "• Use mapped folders to share files with the sandbox\n"
+            "• Commands run after the user logs into the sandbox\n"
+            "• Use full paths for reliable execution\n"
+            "• Batch files (.bat) can run multiple commands"
+        )
+        tips_label.setWordWrap(True)
+        tips_layout.addWidget(tips_label)
+        
+        right_layout.addWidget(examples_group)
+        right_layout.addWidget(tips_group)
+        right_layout.addStretch()
+        
+        # Add layouts to main layout
+        main_layout.addLayout(left_layout, 1)
+        main_layout.addLayout(right_layout, 1)
+        
+    def browse_logon_command(self):
+        """Browse for logon command executable"""
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, "Select Command",
+            "C:\\Windows\\System32",
+            "Executable files (*.exe *.bat *.cmd);;All files (*.*)"
+        )
+        if file_path:
+            self.logon_command.setText(file_path)
+            
+    def set_quick_command(self, command):
+        """Set a quick command"""
+        self.logon_command.setText(command)
         
     def setup_preview_tab(self):
         """Setup the preview tab"""
