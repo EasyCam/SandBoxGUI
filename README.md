@@ -108,7 +108,7 @@ A powerful and user-friendly GUI tool for creating and managing Windows Sandbox 
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/SandboxGUI.git
+   git clone https://github.com/EasyCam/SandboxGUI.git
    cd SandboxGUI
    ```
 
